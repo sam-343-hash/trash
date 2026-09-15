@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Certificate Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#172440;
+    --paper:#EFEAE0;
+    --paper-raised:#F7F4ED;
+    --brass:#9C7A3C;
+    --brass-dark:#7C6329;
+    --slate:#5B6472;
+    --rule:#D8D2C4;
+    --danger:#A6453A;
+    --danger-bg:#F4E7E5;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:960px;
+    margin:0 auto;
+    padding:40px 24px 80px;
+  }
+  header.top{
+    border-bottom:1px solid var(--rule);
+    padding-bottom:24px;
+    margin-bottom:32px;
+  }
+  h1{
+    font-family:'Spectral', serif;
+    font-weight:600;
+    font-size:32px;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  .tagline{
+    color:var(--slate);
+    font-size:14px;
+    margin:0;
+  }
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .count{
+    color:var(--slate);
+    font-size:13px;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .btn{
+    background:var(--ink);
+    color:var(--paper-raised);
+    border:none;
+    padding:10px 18px;
+    font-size:14px;
+    border-radius:3px;
+  }
+  .btn:hover{background:#0E1A30;}
+  .btn.secondary{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--rule);
+  }
+  .btn.secondary:hover{border-color:var(--ink);}
+  .btn.danger{
+    background:transparent;
+    color:var(--danger);
+    border:1px solid var(--danger);
+  }
+  .btn.danger:hover{background:var(--danger-bg);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .layout{
+    display:grid;
+    grid-template-columns:280px 1fr;
+    gap:0;
+    border:1px solid var(--rule);
+    background:var(--paper-raised);
+    min-height:420px;
+  }
+  @media (max-width:720px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .ledger{
+    border-right:1px solid var(--rule);
+  }
+  @media (max-width:720px){
+    .ledger{border-right:none;border-bottom:1px solid var(--rule);}
+  }
+  .ledger-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:14px 18px;
+    border-bottom:1px solid var(--rule);
+    cursor:pointer;
+  }
+  .ledger-row:hover{background:var(--paper);}
+  .ledger-row.active{
+    background:var(--ink);
+    color:var(--paper-raised);
+  }
+  .ledger-row.active .ledger-issuer{color:#C9CEDA;}
+  .ledger-name{
+    font-family:'Spectral', serif;
+    font-size:16px;
+    font-weight:500;
+  }
+  .ledger-issuer{
+    font-size:12px;
+    color:var(--slate);
+    margin-top:2px;
+  }
+  .ledger-empty{
+    padding:24px 18px;
+    color:var(--slate);
+    font-size:13px;
+  }
+
+  .viewer{
+    padding:24px;
+    display:flex;
+    flex-direction:column;
+  }
+  .viewer-empty{
+    margin:auto;
+    text-align:center;
+    color:var(--slate);
+    font-size:14px;
+    padding:40px;
+  }
+  .viewer-empty .seal{
+    width:36px;height:36px;
+    border:1px solid var(--brass);
+    border-radius:50%;
+    margin:0 auto 14px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--brass);
+    font-family:'Spectral', serif;
+    font-size:14px;
+  }
+  .viewer-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .viewer-title{
+    font-family:'Spectral', serif;
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .viewer-meta{
+    color:var(--slate);
+    font-size:13px;
+  }
+  .viewer-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .pdf-frame{
+    width:100%;
+    height:560px;
+    border:1px solid var(--rule);
+    background:#fff;
+  }
+  .copied-tag{
+    font-size:12px;
+    color:var(--brass-dark);
+    margin-left:4px;
+    align-self:center;
+  }
+
+  /* Upload modal */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(23,36,64,0.45);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .modal{
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    width:100%; max-width:440px;
+    padding:28px;
+  }
+  .modal h2{
+    font-family:'Spectral', serif;
+    font-size:20px;
+    margin:0 0 18px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--slate);
+    margin-bottom:5px;
+  }
+  .field input[type=text]{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--rule);
+    background:#fff;
+    font-family:inherit;
+    font-size:14px;
+    border-radius:2px;
+  }
+  .dropzone{
+    border:1px dashed var(--rule);
+    padding:20px;
+    text-align:center;
+    font-size:13px;
+    color:var(--slate);
+    margin-bottom:14px;
+    background:#fff;
+  }
+  .dropzone.has-file{color:var(--ink);}
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:18px;
+  }
+  .error-msg{
+    color:var(--danger);
+    font-size:13px;
+    margin-bottom:12px;
+  }
+  .status{
+    font-size:13px;
+    color:var(--slate);
+    padding:40px;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Certificate Vault</h1>
+    <p class="tagline">Keep your certificates in one place and share a link when someone asks to see them.</p>
+  </header>
+
+  <div class="toolbar">
+    <span class="count" id="countLabel"></span>
+    <button class="btn" id="addBtn">Add certificate</button>
+  </div>
+
+  <div class="layout">
+    <div class="ledger" id="ledger">
+      <div class="ledger-empty">Loading…</div>
+    </div>
+    <div class="viewer" id="viewer">
+      <div class="viewer-empty">
+        <div class="seal">CV</div>
+        Select a certificate to view it here.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" style="display:none;">
+  <div class="modal">
+    <h2>Add a certificate</h2>
+    <div class="error-msg" id="modalError" style="display:none;"></div>
+    <div class="field">
+      <label for="certName">Certificate name</label>
+      <input type="text" id="certName" placeholder="e.g. AWS Certified Solutions Architect" />
+    </div>
+    <div class="field">
+      <label for="certIssuer">Issued by (optional)</label>
+      <input type="text" id="certIssuer" placeholder="e.g. Amazon Web Services" />
+    </div>
+    <div class="field">
+      <label for="certDate">Date (optional)</label>
+      <input type="text" id="certDate" placeholder="e.g. March 2025" />
+    </div>
+    <div class="dropzone" id="dropzone">Click to choose a PDF file (max ~3.5 MB)</div>
+    <input type="file" id="fileInput" accept="application/pdf" style="display:none;" />
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelBtn">Cancel</button>
+      <button class="btn" id="saveBtn" disabled>Save certificate</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const INDEX_KEY = 'certificates-index';
+let certs = [];
+let selectedId = null;
+let pendingFile = null;
+
+const ledger = document.getElementById('ledger');
+const viewer = document.getElementById('viewer');
+const countLabel = document.getElementById('countLabel');
+const overlay = document.getElementById('overlay');
+const addBtn = document.getElementById('addBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const saveBtn = document.getElementById('saveBtn');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const modalError = document.getElementById('modalError');
+
+function escapeHtml(s){
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadIndex(){
+  try{
+    const res = await window.storage.get(INDEX_KEY, true);
+    certs = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    certs = [];
+  }
+}
+
+function renderLedger(){
+  countLabel.textContent = certs.length === 0 ? 'No certificates yet'
+    : certs.length === 1 ? '1 certificate' : certs.length + ' certificates';
+
+  if(certs.length === 0){
+    ledger.innerHTML = '<div class="ledger-empty">Nothing here yet. Add your first certificate to get started.</div>';
+    return;
+  }
+  ledger.innerHTML = certs.map(c => `
+    <div class="ledger-row ${c.id === selectedId ? 'active' : ''}" data-id="${c.id}">
+      <div>
+        <div class="ledger-name">${escapeHtml(c.name)}</div>
+        <div class="ledger-issuer">${escapeHtml(c.issuer || '')}${c.issuer && c.date ? ' · ' : ''}${escapeHtml(c.date || '')}</div>
+      </div>
+    </div>
+  `).join('');
+  ledger.querySelectorAll('.ledger-row').forEach(row => {
+    row.addEventListener('click', () => selectCert(row.dataset.id, true));
+  });
+}
+
+function renderViewerEmpty(){
+  viewer.innerHTML = `
+    <div class="viewer-empty">
+      <div class="seal">CV</div>
+      Select a certificate to view it here.
+    </div>`;
+}
+
+function renderViewerStatus(msg){
+  viewer.innerHTML = `<div class="status">${escapeHtml(msg)}</div>`;
+}
+
+async function selectCert(id, updateHash){
+  selectedId = id;
+  renderLedger();
+  if(updateHash){
+    window.location.hash = id;
+  }
+  renderViewerStatus('Loading certificate…');
+  const meta = certs.find(c => c.id === id);
+  if(!meta){
+    renderViewerEmpty();
+    return;
+  }
+  try{
+    const res = await window.storage.get('cert-data:' + id, true);
+    const dataUrl = res && res.value ? JSON.parse(res.value).dataUrl : null;
+    if(!dataUrl){
+      renderViewerStatus('Could not load this certificate — the file may have been removed.');
+      return;
+    }
+    viewer.innerHTML = `
+      <div class="viewer-head">
+        <div>
+          <div class="viewer-title">${escapeHtml(meta.name)}</div>
+          <div class="viewer-meta">${escapeHtml(meta.issuer || '')}${meta.issuer && meta.date ? ' · ' : ''}${escapeHtml(meta.date || '')}</div>
+        </div>
+        <div class="viewer-actions">
+          <button class="btn secondary" id="copyLinkBtn">Copy share link</button>
+          <a class="btn secondary" id="downloadBtn" download="${escapeHtml(meta.name)}.pdf">Download</a>
+          <button class="btn danger" id="deleteBtn">Delete</button>
+          <span class="copied-tag" id="copiedTag" style="display:none;">Link copied</span>
+        </div>
+      </div>
+      <iframe class="pdf-frame" src="${dataUrl}"></iframe>
+    `;
+    document.getElementById('downloadBtn').href = dataUrl;
+    document.getElementById('copyLinkBtn').addEventListener('click', () => copyShareLink(id));
+    document.getElementById('deleteBtn').addEventListener('click', () => deleteCert(id));
+  }catch(e){
+    renderViewerStatus('Something went wrong loading this certificate. Please try again.');
+  }
+}
+
+function copyShareLink(id){
+  const url = window.location.origin + window.location.pathname + window.location.search + '#' + id;
+  navigator.clipboard.writeText(url).then(() => {
+    const tag = document.getElementById('copiedTag');
+    if(tag){
+      tag.style.display = 'inline';
+      setTimeout(() => tag.style.display = 'none', 2000);
+    }
+  }).catch(() => {
+    prompt('Copy this link:', url);
+  });
+}
+
+async function deleteCert(id){
+  if(!confirm('Delete this certificate? This cannot be undone.')) return;
+  try{
+    certs = certs.filter(c => c.id !== id);
+    await window.storage.set(INDEX_KEY, JSON.stringify(certs), true);
+    await window.storage.delete('cert-data:' + id, true);
+  }catch(e){
+    // continue even if delete of blob fails; index update is what matters most
+  }
+  if(selectedId === id){
+    selectedId = null;
+    window.location.hash = '';
+    renderViewerEmpty();
+  }
+  renderLedger();
+}
+
+// Upload modal
+addBtn.addEventListener('click', () => {
+  document.getElementById('certName').value = '';
+  document.getElementById('certIssuer').value = '';
+  document.getElementById('certDate').value = '';
+  pendingFile = null;
+  dropzone.textContent = 'Click to choose a PDF file (max ~3.5 MB)';
+  dropzone.classList.remove('has-file');
+  modalError.style.display = 'none';
+  saveBtn.disabled = true;
+  overlay.style.display = 'flex';
+});
+cancelBtn.addEventListener('click', () => overlay.style.display = 'none');
+overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.style.display = 'none'; });
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  modalError.style.display = 'none';
+  if(!f) return;
+  if(f.type !== 'application/pdf'){
+    modalError.textContent = 'Please choose a PDF file.';
+    modalError.style.display = 'block';
+    return;
+  }
+  if(f.size > 3.5 * 1024 * 1024){
+    modalError.textContent = 'That file is too large. Please choose a PDF under 3.5 MB.';
+    modalError.style.display = 'block';
+    return;
+  }
+  pendingFile = f;
+  dropzone.textContent = f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+  dropzone.classList.add('has-file');
+  updateSaveEnabled();
+});
+
+document.getElementById('certName').addEventListener('input', updateSaveEnabled);
+function updateSaveEnabled(){
+  const name = document.getElementById('certName').value.trim();
+  saveBtn.disabled = !(name && pendingFile);
+}
+
+saveBtn.addEventListener('click', async () => {
+  const name = document.getElementById('certName').value.trim();
+  const issuer = document.getElementById('certIssuer').value.trim();
+  const date = document.getElementById('certDate').value.trim();
+  if(!name || !pendingFile) return;
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+  modalError.style.display = 'none';
+
+  try{
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.readAsDataURL(pendingFile);
+    });
+
+    const id = 'c' + Date.now() + Math.random().toString(36).slice(2,8);
+    const dataResult = await window.storage.set('cert-data:' + id, JSON.stringify({ dataUrl }), true);
+    if(!dataResult) throw new Error('storage failed');
+
+    certs.push({ id, name, issuer, date, uploadedAt: new Date().toISOString() });
+    const indexResult = await window.storage.set(INDEX_KEY, JSON.stringify(certs), true);
+    if(!indexResult) throw new Error('storage failed');
+
+    overlay.style.display = 'none';
+    renderLedger();
+    selectCert(id, true);
+  }catch(e){
+    modalError.textContent = 'Could not save the certificate. Please try again.';
+    modalError.style.display = 'block';
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save certificate';
+  }
+});
+
+async function init(){
+  renderViewerEmpty();
+  await loadIndex();
+  renderLedger();
+  const hashId = window.location.hash.replace('#','');
+  if(hashId && certs.find(c => c.id === hashId)){
+    selectCert(hashId, false);
+  }
+}
+init();
+</script>
+</body>
+</html>
